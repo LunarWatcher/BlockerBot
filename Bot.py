@@ -3,7 +3,7 @@ import re;
 
 client = d.Client()
 
-regex = r"(?i)(discord\.gg/[a-z0-9]+|discordapp\.com/invite/[a-z0-9]+)"
+regex = r"(?i)(discord\.gg/[a-z0-9]+|discordapp\.com/invite/[a-z0-9]+|add\W*me\W*(?:pl[sz]\W*)?.*\(tag\)\W*\d+)"
 pattern = re.compile(regex)
 
 channelRegex = r"<#[0-9]+>"
