@@ -68,7 +68,7 @@ async def on_ready():
 async def on_member_join(member: d.Member):
     username = member.display_name
     print("Checking user " + username);
-    if(re.findall(pattern, username)):
+    if(re.findall(pattern, username) or member.id == "475013414566232094"):
         print("***Match detected***")
         server = member.server
         await sendMessage("Matching user detected. Nuking user " + member.id + "...", server);
