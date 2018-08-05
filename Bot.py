@@ -1,5 +1,7 @@
 import discord as d
 import re;
+import traceback
+
 
 client = d.Client()
 
@@ -9,13 +11,53 @@ pattern = re.compile(regex)
 channelRegex = r"<#[0-9]+>"
 channelPattern = re.compile(channelRegex)
 
-# Auth: https://discordapp.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&scope=bot&permissions=2054
+# Auth: https://discordapp.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&scope=bot&permissions=8
 # Create an app at https://discordapp.com/developers/applications/me
 token = None
 id = None
 
 channels = {}
 admins = ["363018555081359360"]
+
+helpMessage = "Hello! I'm a bot created by Olivia#0740. I block spam users with invites in their names. Code: <https://github.com/LunarWatcher/BlockerBot/> Bot server invite ID: bpj3V75"
+
+
+class SizeLimitedStack:
+
+    def __init__(self, size):
+        self.size = size;
+        self.data = []
+        assert size > 0
+
+    def add(self, item):
+        if(len(self.data) < self.size):
+            self.data.append(item)
+        else:
+            self.data.pop(0);
+            self.data.append(item)
+
+    def pop(self, index):
+        self.data.pop(index)
+
+    def get(self, index):
+        return self.data[index]
+
+    def getSize(self):
+        return len(self.data)
+
+    def isNotEmpty(self):
+        return self.getSize() != 0
+
+    def isEmpty(self):
+        return self.getSize() == 0
+
+    def clear(self):
+        self.data.clear()
+
+
+botMessages = SizeLimitedStack(50)
+nukableUsers = SizeLimitedStack(10)
+
 
 @client.event
 async def on_ready():
@@ -29,14 +71,53 @@ async def on_member_join(member: d.Member):
     if(re.findall(pattern, username)):
         print("***Match detected***")
         server = member.server
-        await sendMessage("Matching user detected. Nuking...", server);
+        await sendMessage("Matching user detected. Nuking user " + member.id + "...", server);
         try:
             await client.ban(member, 1)
+
         except:
             await sendMessage("Failed to nuke user. Check my permissions, please", server)
             return
+        try:
+            count = await nukeMessages(member)
+            await sendMessage("Messages nuked: " + str(count), server)
+        except d.Forbidden:
+            await sendMessage("Failed to remove messages! Check my permissions", server)
+            tb = traceback.format_exc()
+            print(tb)
+        except d.HTTPException:
+            await sendMessage("An HTTP error occured when removing messages", server)
+            tb = traceback.format_exc()
+            print(tb)
 
         await sendMessage("User nuked", server)
+
+
+async def nukeMessages(member):
+    count = 0
+    username = member.display_name
+    userid = member.id
+
+    if(botMessages.isNotEmpty()):
+        for message in botMessages.data:
+
+            messageContent = message.content
+            if "<@" + userid + ">" in messageContent or "<@!" + userid + ">" in messageContent:
+                print("Message found! Author: " + message.author.display_name);
+                print("Content:" + messageContent)
+                print()
+                await client.delete_message(message)
+                count += 1
+
+            elif username.lower() in messageContent.lower():
+                print("Message found! Plaintext mode. Author: " + message.author.display_name)
+                print("Content:" + messageContent)
+                print()
+                await client.delete_message(message)
+                count += 1
+        botMessages.clear()
+    nukableUsers.add(member)
+    return count
 
 
 async def sendMessage(content: str, server: d.Server):
@@ -62,14 +143,24 @@ async def sendMessage(content: str, server: d.Server):
 
 @client.event
 async def on_message(message):
-    if message.author == client.user:
+
+
+    if(message.author.bot):
+        botMessages.add(message)
+        if(nukableUsers.isNotEmpty()):
+            for user in nukableUsers.data:
+                try:
+                    await nukeMessages(user)
+                except:
+                    continue
+            nukableUsers.clear()
         return;
 
     if(message.content.startswith("!!")):
         if(message.content.startswith("!!help")):
-            await client.send_message(message.channel, "Hello! I'm a bot created by Olivia#0740. I block spam users with invites in their names. Bot server invite ID: bpj3V75")
+            await client.send_message(message.channel, helpMessage)
         elif(message.content.startswith("!!join")):
-            await client.send_message(message.channel, "https://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=2054".format(id))
+            await client.send_message(message.channel, "https://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=8".format(id))
         elif message.content.startswith("!!alive"):
             await client.send_message(message.channel, "Nah, I'm dead")
         elif message.content.startswith("!!github"):
@@ -89,18 +180,24 @@ async def on_message(message):
 
             channel = channel[2:len(channel) - 1]
             raw = client.get_channel(channel)
-            await client.send_message(raw, "Registered channel")
+            try:
+                await client.send_message(raw, "Registered channel")
+            except d.Forbidden:
+                await client.send_message(message.channel, "No access.")
             channels[str(message.server.id)] = int(channel)
+        elif message.content.startswith("!!say"):
+            items = message.content.split(" ", 1)
+            if (len (items) != 2):
+                await client.send_message("What?")
+                return
+            await client.send_message(message.channel, items[1])
         elif message.content.startswith("!!exit"):
             if(message.author.id not in admins):
                 await client.send_message(message.channel, "No")
                 return;
             await save()
-
-            exit(0)
+            exit(1);
             return;
-    elif(client.user.mentioned_in(message)):
-        await client.send_message(message.channel, "Hello! I'm a bot created by Olivia#0740. I block spam users with invites in their names. Bot server invite ID: bpj3V75")
 
 
 if(token == None or id == None):
@@ -123,6 +220,8 @@ def load():
         if(len(map) == 0):
             return;
         for item in map:
+            if(len(item) == 0):
+                continue;
             sub = item.split(",")
             if(len(sub) != 2):
                 print("Wrong len! " + item)
