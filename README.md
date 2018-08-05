@@ -20,4 +20,4 @@ Commands:
 You need [Python 3](https://www.python.org/). 
 
 You'll also need a token and a client ID for the Discord. Set up an app at https://discordapp.com/developers/applications/me
-**Both need to be Strings!**. Add them to the `Bot.py` file. Then run `pip install discord`. You may need to run `pip3 install discord`. 
+**Both need to be Strings!** (if you don't know how to define Strings, it's as easy as replacing `None` with `""`, and writing your token/ID between the quotes. I.e. `"abcd1234"`). Add them to the `Bot.py` file; the variables are pre-defined. Then run `pip install discord`. You may need to run `pip3 install discord`. 
