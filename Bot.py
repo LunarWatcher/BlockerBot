@@ -171,7 +171,7 @@ async def on_message(message):
                 return
             items = message.content.split(" ", 1)
             if (len (items) != 2):
-                await client.send_message("Where?")
+                await client.send_message(message.channel, "Where?")
                 return
             channel = str(items[1])
             if not re.match(channelPattern, channel):
