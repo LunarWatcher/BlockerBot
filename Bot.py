@@ -5,7 +5,7 @@ import traceback
 
 client = d.Client()
 
-regex = r"(?i)(discord\.gg/[a-z0-9]+|discordapp\.com/invite/[a-z0-9]+|add\W*me\W*(?:pl[sz]\W*)?.*\(tag\)\W*\d+)"
+regex = r"(?i)(discord\.gg/[a-z0-9]+|discordapp\.com/invite/[a-z0-9]+|(?:pl(?:[sz]|ease)\W*)?add\W*(?:me\W*)?(?:pl(?:[sz]|ease)\W*)?.*\(?(?:tag|#)\)?\W*\d+(?:#\d+)?)"
 pattern = re.compile(regex)
 
 channelRegex = r"<#[0-9]+>"
